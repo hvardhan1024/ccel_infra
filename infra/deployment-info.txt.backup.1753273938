@@ -1,0 +1,11 @@
+# Deployment Information - Created Wed Jul 23 05:08:37 PM IST 2025
+TIMESTAMP=1753270717
+REGION=ap-south-1
+S3_BUCKET=portfolio-app-1753270717
+IAM_ROLE=EC2S3AccessRole
+EC2_SECURITY_GROUP_ID=sg-036a8d001c1c3a05b
+RDS_SECURITY_GROUP_ID=sg-0c6a230a5298d06ec
+RDS_IDENTIFIER=portfolio-app-db-1753270717
+RDS_ENDPOINT=portfolio-app-db-1753270717.chqy6iocw0k8.ap-south-1.rds.amazonaws.com
+INSTANCE_ID=i-00780a98ade1d0f12
+PUBLIC_IP=13.126.127.186

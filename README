@@ -1,0 +1,268 @@
+# Flask Portfolio App - AWS Deployment
+
+Simple AWS deployment infrastructure for Flask portfolio application using Docker containerization and AWS free tier resources.
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- AWS CLI installed and configured (`aws configure`)
+- Bash shell environment
+- GitHub repository with your Flask app code
+
+### 1. Setup Repository
+
+Update the GitHub repository URL in the scripts:
+
+```bash
+# Edit these files and update GITHUB_REPO variable:
+- infra/deploy.sh (line 13)
+- infra/ec2-setup.sh (line 7)
+```
+
+### 2. Deploy to AWS
+
+```bash
+chmod +x infra/deploy.sh infra/cleanup.sh
+./infra/deploy.sh
+```
+
+### 3. Access Your App
+
+After deployment completes (2-3 minutes), your app will be available at:
+
+```
+http://YOUR_EC2_PUBLIC_IP:5000
+```
+
+### 4. Cleanup Resources
+
+```bash
+./infra/cleanup.sh
+```
+
+## 📁 File Structure
+
+```
+infra/
+├── deploy.sh           # Main deployment script
+├── cleanup.sh          # Resource cleanup script
+├── ec2-setup.sh        # EC2 application setup
+├── iam-policy.json     # S3 access permissions
+├── trust-policy.json   # EC2 assume role policy
+└── deployment-info.txt # Generated resource tracking
+```
+
+## ☁️ AWS Resources Created
+
+| Service        | Type          | Specs              | Purpose            |
+| -------------- | ------------- | ------------------ | ------------------ |
+| EC2            | t2.micro      | 1 vCPU, 1GB RAM    | Application server |
+| RDS            | db.t3.micro   | PostgreSQL, 20GB   | Database           |
+| S3             | Standard      | 5GB storage        | File uploads       |
+| IAM            | Role + Policy | S3 access          | EC2 permissions    |
+| Security Group | Default VPC   | Ports 22, 80, 5000 | Network access     |
+
+## 🔧 Deployment Process
+
+1. **S3 Setup**: Creates bucket with public read access for uploads
+2. **IAM Configuration**: Creates role for EC2 to access S3
+3. **Database Creation**: Launches RDS PostgreSQL instance
+4. **Network Setup**: Creates security group with required ports
+5. **EC2 Launch**: Deploys application server with Docker
+6. **Application Setup**: Clones repo, builds container, starts app
+
+## 📊 Monitoring & Troubleshooting
+
+### Check Application Status
+
+```bash
+# SSH to EC2 (replace with your instance details)
+aws ec2 describe-instances --instance-ids YOUR_INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress'
+ssh -i ~/.ssh/your-key.pem ec2-user@YOUR_PUBLIC_IP
+
+# Check Docker container status
+sudo docker ps
+sudo docker logs portfolio-container
+
+# Check application logs
+tail -f /var/log/portfolio-setup.log
+```
+
+### Common Issues & Solutions
+
+| Problem                    | Cause                | Solution                          |
+| -------------------------- | -------------------- | --------------------------------- |
+| App not accessible         | Security group rules | Check ports 5000, 80 are open     |
+| Database connection failed | RDS not ready        | Wait 5-10 minutes for RDS startup |
+| Docker build failed        | Missing Dockerfile   | Ensure repository has Dockerfile  |
+| S3 upload failed           | IAM permissions      | Check EC2 role has S3 access      |
+| Git clone failed           | Repository URL       | Update GITHUB_REPO in scripts     |
+
+### Manual Re-deployment on EC2
+
+If the automatic setup fails, you can run the setup manually:
+
+```bash
+# SSH to your EC2 instance
+ssh -i ~/.ssh/your-key.pem ec2-user@YOUR_PUBLIC_IP
+
+# Download and run the setup script
+curl -O https://raw.githubusercontent.com/YOUR_USERNAME/flask-portfolio/main/infra/ec2-setup.sh
+chmod +x ec2-setup.sh
+./ec2-setup.sh
+```
+
+## 💰 Cost Estimation
+
+All resources are designed for AWS Free Tier:
+
+- **EC2 t2.micro**: 750 hours/month (free)
+- **RDS db.t3.micro**: 750 hours/month (free)
+- **S3 Standard**: 5GB storage (free)
+- **Data Transfer**: 15GB/month (free)
+
+**Estimated monthly cost**: $0 (within free tier limits)
+
+## 🔒 Security Considerations
+
+### Current Security Level: BASIC
+
+This deployment prioritizes simplicity over security:
+
+- ❌ Plain text passwords
+- ❌ No HTTPS/SSL
+- ❌ No input validation
+- ❌ No rate limiting
+- ❌ No monitoring/logging
+
+### For Production Use:
+
+- ✅ Use AWS Secrets Manager for passwords
+- ✅ Add Application Load Balancer with SSL
+- ✅ Implement WAF (Web Application Firewall)
+- ✅ Add CloudWatch monitoring
+- ✅ Use private subnets for RDS
+- ✅ Enable backup and monitoring
+
+## 📝 Environment Variables
+
+The deployment automatically creates these environment variables:
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql://postgres:password@rds-endpoint:5432/postgres
+
+# Flask Configuration
+SECRET_KEY=simple-secret-key-timestamp
+FLASK_ENV=production
+FLASK_DEBUG=False
+
+# AWS Configuration
+AWS_REGION=ap-south-1
+S3_BUCKET=portfolio-app-timestamp
+
+# Application Settings
+PORT=5000
+UPLOAD_MAX_SIZE=16777216
+```
+
+## 🔄 Deployment Workflow
+
+```
+Developer Machine → GitHub Repository → AWS EC2
+                                    ↓
+                              Docker Container
+                                    ↓
+                              Flask Application
+                                    ↓
+                              RDS PostgreSQL ← → S3 Bucket
+```
+
+## 📞 Support
+
+### Deployment Issues
+
+1. Check AWS CLI configuration: `aws sts get-caller-identity`
+2. Verify permissions: Ensure IAM user has EC2, RDS, S3, IAM permissions
+3. Check region: All resources must be in `ap-south-1`
+4. Review logs: Check `/var/log/portfolio-setup.log` on EC2
+
+### Application Issues
+
+1. Check container status: `sudo docker ps`
+2. View application logs: `sudo docker logs portfolio-container`
+3. Test database connection: Check RDS endpoint accessibility
+4. Verify S3 permissions: Test file upload functionality
+
+## 🧹 Cleanup Process
+
+The cleanup script removes all resources in this order:
+
+1. Terminates EC2 instance
+2. Deletes RDS database (no snapshots)
+3. Empties and deletes S3 bucket
+4. Removes IAM role and policies
+5. Deletes security group
+6. Cleans local deployment files
+
+**Important**: Always run cleanup to avoid unexpected charges!
+
+## 🔧 Customization
+
+### Change Region
+
+Update `REGION` variable in `deploy.sh`:
+
+```bash
+REGION="us-east-1"  # Change to your preferred region
+```
+
+### Modify Instance Type
+
+Update instance type in `deploy.sh` (may incur costs):
+
+```bash
+--instance-type t3.small  # Upgrade from t2.micro
+```
+
+### Add Custom Domain
+
+After deployment, you can:
+
+1. Register domain in Route 53
+2. Create A record pointing to EC2 public IP
+3. Add Application Load Balancer for SSL
+
+### Enable HTTPS
+
+For production use:
+
+1. Get SSL certificate from AWS Certificate Manager
+2. Add Application Load Balancer
+3. Update security groups for port 443
+
+## 📋 Pre-Deployment Checklist
+
+- [ ] AWS CLI configured with valid credentials
+- [ ] GitHub repository contains Flask app code
+- [ ] Dockerfile present in repository root
+- [ ] requirements.txt present in repository
+- [ ] Updated GITHUB_REPO URL in scripts
+- [ ] Sufficient AWS free tier limits available
+- [ ] Scripts have execute permissions (`chmod +x`)
+
+## 🎯 Success Criteria
+
+After deployment, you should have:
+
+- [ ] Accessible web application at `http://PUBLIC_IP:5000`
+- [ ] Database connectivity working
+- [ ] File uploads to S3 working
+- [ ] User registration/login functional
+- [ ] All AWS resources visible in console
+- [ ] deployment-info.txt file generated
+
+---
+
+**Next Steps**: Once deployed, test all application features and run `./infra/cleanup.sh` when done to avoid charges.
